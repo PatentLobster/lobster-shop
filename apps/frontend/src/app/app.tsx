@@ -162,10 +162,6 @@ export function App() {
           <CardContent className="pt-6">
             <div className="text-sm text-muted-foreground space-y-1">
               <p>
-                <strong>Architecture:</strong> React → public-api (Kafka Producer) → Kafka → private-api
-                (Consumer) → MongoDB
-              </p>
-              <p>
                 <strong>User ID:</strong> <span className="font-mono">{userId}</span>
               </p>
               {config?.features?.debugMode && (

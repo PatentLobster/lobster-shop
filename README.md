@@ -49,11 +49,13 @@ open http://localhost:8080
     - https://keda.sh (for event-driven autoscaling)
     - Ingress controller (optional, for external access)
 
-  1. Create Namespace
+1. Create Namespace
 
+  ```bash
   kubectl create ns lobster-shop
+  ```
 
-  2. Install Infrastructure (Kafka + MongoDB)
+2. Install Infrastructure (Kafka + MongoDB) - Optional
 
   #### Install Kafka (Bitnami)
 ```bash
@@ -76,7 +78,7 @@ open http://localhost:8080
     --set persistence.enabled=false \
     --set resourcesPreset=micro
 ```
-4. Install Lobster Shop Application
+3. Install Lobster Shop Application
 
 ```bash
   helm install lobster-shop oci://ghcr.io/patentlobster/lobster-shop/lobster-shop \
