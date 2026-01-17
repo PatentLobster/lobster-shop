@@ -1,8 +1,20 @@
 # 🦞 Lobster Shop
 
-A **Kubernetes-native** microservices application demonstrating cloud-native best practices.
+### A **Kubernetes-native** microservices application demonstrating cloud-native best practices.
+
+---
 
 ## 🏗️ Architecture
+
+
+### 📦 Services
+
+#### The application consists of three microservices:
+
+- **Frontend** (`apps/frontend`) : React frontend
+- **public-api** (`apps/public-api`) : Kafka Producer, and calls private-api via HTTP.
+- **private-api** (`apps/private-api`) : Kafka Consumer, and persists data to MongoDB.
+
 
 ```
 ┌─────────────┐    HTTP     ┌──────────────┐    Kafka      ┌───────────────┐
@@ -18,6 +30,14 @@ A **Kubernetes-native** microservices application demonstrating cloud-native bes
 │  (Consumer)  │  Persist │              │
 └──────────────┘          └──────────────┘
 ```
+
+### 🛠️ Built using:
+
+- [React](https://reactjs.org/) (Frontend)
+- [NestJS](https://nestjs.com/) (APIs)
+- [Bun](https://bun.sh/) 
+- [Nx](https://nx.dev)
+
 
 ## 🚀 Quick Start
 
@@ -35,11 +55,27 @@ docker-compose up --build
 open http://localhost:8080
 ```
 
-### 📦 Services
+### Build all docker images
+```bash
+bun nx run-many -t docker
+```
 
-- **Frontend**: http://localhost:8080
-- **public-api**: http://localhost:3000/api
-- **private-api**: http://localhost:3100/api
+### Package all helm charts
+```bash
+bun nx run-many -t helm
+```
+
+### Run dev mode
+```bash
+bun nx run-many -t dev
+```
+
+
+### 🎯 Endpoints
+
+- **Frontend**: http://localhost:8080 
+- **public-api**: http://localhost:3000/api 
+- **private-api**: http://localhost:3100/api 
 
 ## Deploy to Kubernetes
 
