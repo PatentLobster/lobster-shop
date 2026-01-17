@@ -127,6 +127,16 @@ bun nx run-many -t dev
 
 ```yaml
   public-api:
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - host: lobster-shop-public-api.example.com
+          paths:
+            - path: /
+              pathType: Prefix
     config:
       kafkaBrokers: "my-kafka.lobster-shop.svc.cluster.local:9092"
       privateApiUrl: "http://lobster-shop-private-api.lobster-shop.svc.cluster.local:80"
@@ -139,16 +149,6 @@ bun nx run-many -t dev
         passwordKey: "client-passwords"
 
   private-api:
-    ingress:
-      enabled: true
-      className: "nginx"
-      annotations:
-        cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      hosts:
-        - host: lobster-shop-public-api.example.com
-          paths:
-            - path: /
-              pathType: Prefix
     config:
       kafkaBrokers: "my-kafka.lobster-shop.svc.cluster.local:9092"
       kafkaGroupId: "purchase-processor-group"
