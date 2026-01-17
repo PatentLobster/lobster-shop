@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "public-api.fullname" . }}
+  labels:
+    {{- include "public-api.labels" . | nindent 4 }}
+data:
+  SERVICE_NAME: {{ .Chart.Name | quote }}
+  KAFKA_CLIENT_ID: {{ printf "%s-%s" .Chart.Name .Release.Name | quote }}
+  KAFKA_BROKERS: {{ .Values.config.kafkaBrokers | quote }}
+  PRIVATE_API_URL: {{ .Values.config.privateApiUrl | quote }}
+  PUBLIC_API_EXTERNAL_URL: {{ .Values.config.publicApiExternalUrl | quote }}
+  CORS_ORIGIN: {{ .Values.config.corsOrigin | quote }}

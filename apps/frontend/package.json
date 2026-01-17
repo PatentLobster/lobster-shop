@@ -1,0 +1,42 @@
+{
+  "name": "frontend",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
+    "@tailwindcss/vite": "^4.1.18",
+    "@lobster-shop/shared": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.562.0",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18"
+  },
+  "nx": {
+    "release": {
+      "docker": {
+        "repositoryName": "patentlobster/lobster-shop-frontend"
+      }
+    },
+    "targets": {
+      "helm": {
+        "executor": "@nx-extensions/helm:package",
+        "outputs": [
+          "{options.outputFolder}"
+        ],
+        "options": {
+          "chartFolder": "apps/frontend/chart",
+          "outputFolder": "{workspaceRoot}/dist/charts/{projectRoot}",
+          "push": true,
+          "appVersion": "{shortCommitSha}",
+          "remote": "oci://ghcr.io/patentlobster/lobster-shop",
+          "dependencies": {
+            "update": true,
+            "build": true,
+            "repositories": []
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "private-api.fullname" . }}
+  labels:
+    {{- include "private-api.labels" . | nindent 4 }}
+data:
+  SERVICE_NAME: {{ .Chart.Name | quote }}
+  KAFKA_CLIENT_ID: {{ printf "%s-%s" .Chart.Name .Release.Name | quote }}
+  KAFKA_BROKERS: {{ .Values.config.kafkaBrokers | quote }}
+  KAFKA_GROUP_ID: {{ .Values.config.kafkaGroupId | quote }}
+  MONGODB_URI: {{ .Values.config.mongodbUri | quote }}
+  MONGODB_DATABASE: {{ .Values.config.mongodbDatabase | quote }}

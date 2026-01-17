@@ -1,0 +1,56 @@
+name: Build and publish
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  actions: read
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-24.04-arm
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Git User
+        run: |
+          git config user.name PatentLobster
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build all projects
+        run: bun nx run-many -t docker:build
+
+      - name: Docker Tag
+        run: bun nx release version
+
+      - name: Push Docker images with Nx
+        run: bun nx release publish --dockerVersionScheme=production --first-release -y
+      - name: Build and push Helm charts with Nx
+        run: bun nx run-many -t helm --appVersion "${GITHUB_SHA:0:7}" --exclude lobster-shop
+      - name: Build Parent Helm chart with Nx
+        run: bun nx run lobster-shop:helm --appVersion "${GITHUB_SHA:0:7}"

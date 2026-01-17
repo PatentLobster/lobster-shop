@@ -1,0 +1,12 @@
+dependencies:
+- name: frontend
+  repository: file://../../frontend/chart
+  version: 0.1.0
+- name: public-api
+  repository: file://../../public-api/chart
+  version: 0.1.0
+- name: private-api
+  repository: file://../../private-api/chart
+  version: 0.1.0
+digest: sha256:7f68f1bc560c7e714fa64155c0586ab0e67836ae17033a989b0377dd028f8fb9
+generated: "2026-01-16T23:03:42.576916+02:00"

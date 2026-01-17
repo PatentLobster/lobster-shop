@@ -1,0 +1,44 @@
+{{- if .Values.keda.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "private-api.fullname" . }}
+  labels:
+    {{- include "private-api.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "private-api.fullname" . }}
+  pollingInterval: {{ .Values.keda.pollingInterval }}
+  cooldownPeriod: {{ .Values.keda.cooldownPeriod }}
+  minReplicaCount: {{ .Values.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.keda.maxReplicaCount }}
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: {{ .Values.config.kafkaBrokers }}
+        consumerGroup: {{ .Values.keda.kafka.consumerGroup }}
+        topic: {{ .Values.keda.kafka.topic }}
+        lagThreshold: {{ .Values.keda.kafka.lagThreshold | quote }}
+        offsetResetPolicy: latest
+        {{- if .Values.secrets.kafkaSasl.enabled }}
+        sasl: {{ .Values.secrets.kafkaSasl.mechanism | lower | quote }}
+        username: {{ .Values.secrets.kafkaSasl.username | quote }}
+        {{- end }}
+      authenticationRef:
+        name: {{ include "private-api.fullname" . }}-keda-trigger-auth
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ include "private-api.fullname" . }}-keda-trigger-auth
+  labels:
+    {{- include "private-api.labels" . | nindent 4 }}
+spec:
+  secretTargetRef:
+    # Only password comes from secret; username is in metadata above
+    - parameter: password
+      name: {{ .Values.secrets.kafkaSasl.existingSecret | default (include "private-api.fullname" .) }}
+      key: {{ .Values.secrets.kafkaSasl.passwordKey | default "KAFKA_SASL_PASSWORD" }}
+{{- end }}

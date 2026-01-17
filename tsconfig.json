@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/frontend"
+    },
+    {
+      "path": "./apps/public-api"
+    },
+    {
+      "path": "./apps/private-api"
+    },
+    {
+      "path": "./libs/shared"
+    },
+    {
+      "path": "./apps/lobster-shop"
+    }
+  ]
+}

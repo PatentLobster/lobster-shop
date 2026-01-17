@@ -1,0 +1,178 @@
+# ==============================================================================
+# Lobster Shop - Local Development Environment
+# ==============================================================================
+# This docker-compose file runs the entire system locally:
+# - Kafka (KRaft mode, no Zookeeper)
+# - MongoDB
+# - public-api (Kafka producer)
+# - private-api (Kafka consumer + MongoDB)
+# - frontend (React SPA)
+
+version: '3.8'
+
+networks:
+  lobster-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  kafka_data:
+    driver: local
+
+services:
+  # ==============================================================================
+  # Infrastructure: MongoDB
+  # ==============================================================================
+  mongodb:
+    image: mongodb/mongodb-community-server:8.0-ubi8
+    container_name: lobster-mongodb
+    networks:
+      - lobster-network
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:-password}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==============================================================================
+  # Infrastructure: Kafka (KRaft mode)
+  # ==============================================================================
+  kafka:
+    image: apache/kafka:latest
+    hostname: kafka
+    container_name: lobster-kafka
+    networks:
+      - lobster-network
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+      # Auto-create topics (disabled in production, use Strimzi CRDs)
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server 0.0.0.0:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ==============================================================================
+  # Application: public-api (Kafka Producer)
+  # ==============================================================================
+  public-api:
+    env_file: .env
+    build:
+      context: .
+      dockerfile: apps/public-api/Dockerfile
+    container_name: lobster-public-api
+    networks:
+      - lobster-network
+    ports:
+      - "${PUBLIC_API_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: 3000
+      SERVICE_NAME: public-api
+
+      # Kafka Configuration
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: public-api
+      KAFKA_SSL_ENABLED: "false"
+
+      # CORS
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+
+      # Private API URL (for proxying requests)
+      PRIVATE_API_URL: http://private-api:3100
+
+      # Frontend Runtime Config (exposed via /api/config)
+      PUBLIC_API_EXTERNAL_URL: ${PUBLIC_API_EXTERNAL_URL:-http://localhost:3000}
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # ==============================================================================
+  # Application: private-api (Kafka Consumer + MongoDB)
+  # ==============================================================================
+  private-api:
+    build:
+      context: .
+      dockerfile: apps/private-api/Dockerfile
+    container_name: lobster-private-api
+    networks:
+      - lobster-network
+    ports:
+      - "${PRIVATE_API_PORT:-3100}:3100"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: 3100
+      SERVICE_NAME: private-api
+
+      # Kafka Configuration
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: private-api
+      KAFKA_GROUP_ID: ${KAFKA_CONSUMER_GROUP:-purchase-processor-group}
+
+      # MongoDB Configuration
+      MONGODB_URI: mongodb://${MONGODB_USERNAME:-admin}:${MONGODB_PASSWORD:-password}@mongodb:27017
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-lobster-shop}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/api/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # ==============================================================================
+  # Application: frontend (React SPA)
+  # ==============================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        BUILD_TARGET: dev
+    container_name: lobster-frontend
+    networks:
+      - lobster-network
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped

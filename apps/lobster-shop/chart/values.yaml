@@ -1,0 +1,160 @@
+global:
+  imageRegistry: ghcr.io
+  imagePullPolicy: IfNotPresent
+  imageTag: ""
+  imagePullSecrets: []
+  labels: {}
+  annotations: {}
+frontend:
+  enabled: true
+  image:
+    registry: ghcr.io
+    repository: patentlobster/lobster-shop-frontend
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+  config:
+    apiUrl: "http://lobster-shop-public-api"
+    environment: "production"
+    appName: "Lobster Shop"
+  ingress:
+    enabled: false
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+  networkPolicy:
+    enabled: true
+public-api:
+  enabled: true
+  image:
+    registry: ghcr.io
+    repository: patentlobster/lobster-shop-public-api
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  config:
+    kafkaBrokers: "my-kafka.lobster-shop.svc.cluster.local:9092"
+    privateApiUrl: "http://lobster-shop-private-api:80"
+    publicApiExternalUrl: "http://localhost:3000"
+    corsOrigin: "*"
+  secrets:
+    kafkaSasl:
+      enabled: true
+      mechanism: "PLAIN"
+      existingSecret: "my-kafka-user-passwords"
+      usernameKey: "client-passwords"
+      passwordKey: "client-passwords"
+      username: "user1"
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+  networkPolicy:
+    enabled: true
+private-api:
+  enabled: true
+  image:
+    registry: ghcr.io
+    repository: patentlobster/lobster-shop-private-api
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 300m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+  keda:
+    enabled: true
+    pollingInterval: 30
+    cooldownPeriod: 300
+    minReplicaCount: 2
+    maxReplicaCount: 20
+    triggers:
+      - type: kafka
+        metadata:
+          bootstrapServers: "my-kafka.lobster-shop.svc.cluster.local:9092"
+          consumerGroup: "purchase-processor-group"
+          topic: "purchases"
+          lagThreshold: "10"
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3100
+  config:
+    kafkaBrokers: "my-kafka.lobster-shop.svc.cluster.local:9092"
+    kafkaGroupId: "purchase-processor-group"
+    mongodbUri: "mongodb://my-mongodb.lobster-shop.svc.cluster.local:27017"
+    mongodbDatabase: "lobster-shop"
+  secrets:
+    kafkaSasl:
+      enabled: true
+      mechanism: "PLAIN"
+      existingSecret: "my-kafka-user-passwords"
+      usernameKey: "client-passwords"
+      passwordKey: "client-passwords"
+      username: "user1"
+    mongodb:
+      enabled: false
+      username: ""
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+  networkPolicy:
+    enabled: true
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}

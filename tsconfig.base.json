@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "importHelpers": true,
+    "isolatedModules": true,
+    "lib": ["es2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2022",
+    "customConditions": ["@lobster-shop/source"],
+    "paths": {
+      "@lobster-shop/public-api/*": [
+        "./apps/public-api/src/*"
+      ],
+      "@lobster-shop/private-api/*": [
+        "./apps/private-api/src/*"
+      ],
+      "@lobster-shop/frontend/*": [
+        "./apps/frontend/src/*"
+      ],
+      "@lobster-shop/shared": [
+        "./libs/shared/src/*"
+      ]
+    }
+  }
+}

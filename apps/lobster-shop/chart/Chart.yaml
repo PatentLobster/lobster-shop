@@ -1,0 +1,35 @@
+apiVersion: v2
+name: lobster-shop
+description: Lobster Shop - Kubernetes-native microservices application with event-driven architecture
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - lobster-shop
+  - microservices
+  - kafka
+  - mongodb
+  - event-driven
+
+maintainers:
+  - name: PatentLobster
+    url: https://github.com/patentlobster
+
+# Child chart dependencies
+dependencies:
+  - name: frontend
+    version: "0.1.0"
+    repository: "oci://ghcr.io/patentlobster/lobster-shop"
+    condition: frontend.enabled
+
+  - name: public-api
+    version: "0.1.0"
+    repository: "oci://ghcr.io/patentlobster/lobster-shop"
+    condition: public-api.enabled
+
+  - name: private-api
+    version: "0.1.0"
+    repository: "oci://ghcr.io/patentlobster/lobster-shop"
+    condition: private-api.enabled
+

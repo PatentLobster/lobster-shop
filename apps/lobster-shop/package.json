@@ -1,0 +1,31 @@
+{
+  "name": "lobster-shop",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "dependencies": {},
+  "nx": {
+    "targets": {
+      "helm": {
+        "executor": "@nx-extensions/helm:package",
+        "outputs": [
+          "{options.outputFolder}"
+        ],
+        "options": {
+          "chartFolder": "apps/lobster-shop/chart",
+          "outputFolder": "{workspaceRoot}/dist/charts/{projectRoot}",
+          "push": true,
+          "remote": "oci://ghcr.io/patentlobster/lobster-shop",
+          "dependencies": {
+            "update": true,
+            "build": true,
+            "repositories": []
+          }
+        }
+      }
+    }
+  }
+}

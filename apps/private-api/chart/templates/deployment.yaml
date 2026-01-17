@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "private-api.fullname" . }}
+  labels:
+    {{- include "private-api.labels" . | nindent 4 }}
+spec:
+  {{- if not (or .Values.autoscaling.enabled .Values.keda.enabled) }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "private-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "private-api.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "private-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "{{ .Values.service.targetPort }}"
+            - name: NODE_ENV
+              value: "production"
+            - name: SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "private-api.fullname" . }}
+                  key: SERVICE_NAME
+            - name: KAFKA_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "private-api.fullname" . }}
+                  key: KAFKA_CLIENT_ID
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "private-api.fullname" . }}
+                  key: KAFKA_BROKERS
+            - name: KAFKA_GROUP_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "private-api.fullname" . }}
+                  key: KAFKA_GROUP_ID
+            - name: MONGODB_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "private-api.fullname" . }}
+                  key: MONGODB_URI
+            - name: MONGODB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "private-api.fullname" . }}
+                  key: MONGODB_DATABASE
+            {{- if .Values.secrets.kafkaSasl.enabled }}
+            - name: KAFKA_SASL_MECHANISM
+              value: {{ .Values.secrets.kafkaSasl.mechanism | default "PLAIN" | quote }}
+            - name: KAFKA_SASL_USERNAME
+              {{- if .Values.secrets.kafkaSasl.existingSecret }}
+              value: {{ .Values.secrets.kafkaSasl.username | quote }}
+              {{- else }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "private-api.fullname" . }}
+                  key: KAFKA_SASL_USERNAME
+              {{- end }}
+            - name: KAFKA_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.kafkaSasl.existingSecret | default (include "private-api.fullname" .) }}
+                  key: {{ .Values.secrets.kafkaSasl.passwordKey | default "KAFKA_SASL_PASSWORD" }}
+            {{- end }}
+            {{- if .Values.secrets.mongodb.enabled }}
+            - name: MONGODB_USERNAME
+              {{- if .Values.secrets.mongodb.existingSecret }}
+              value: {{ .Values.secrets.mongodb.username | quote }}
+              {{- else }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "private-api.fullname" . }}
+                  key: MONGODB_USERNAME
+              {{- end }}
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.mongodb.existingSecret | default (include "private-api.fullname" .) }}
+                  key: {{ .Values.secrets.mongodb.passwordKey | default "MONGODB_PASSWORD" }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
