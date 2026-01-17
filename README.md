@@ -1,4 +1,4 @@
-#🦞 Lobster Shop
+# 🦞 Lobster Shop
 
 A **Kubernetes-native** microservices application demonstrating cloud-native best practices.
 
